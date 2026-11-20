@@ -170,20 +170,8 @@ public class Turret extends SubsystemBase {
         return new StartEndCommand(() -> isAiming = true, () -> isAiming = false, this);
     }
 
-    public InstantCommand stopAiming() {
-        return new InstantCommand(() -> isAiming = false);
-    }
-
-    public InstantCommand setAngle(double angleDeg) {
-        return new InstantCommand(() -> setTargetAngle(angleDeg), this);
-    }
-
     public Command goToAngle(double angleDeg) {
         return new RunCommand(() -> setTargetAngle(angleDeg), this).interruptOn(this::isAtPosition);
-    }
-
-    public Command center() {
-        return goToAngle(0.0);
     }
 
     public InstantCommand stop() {

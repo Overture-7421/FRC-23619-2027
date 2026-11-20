@@ -22,7 +22,7 @@ public class TurretTuning extends CommandOpMode {
         GamepadEx driver = new GamepadEx(gamepad1);
         turret = new Turret(hardwareMap);
 
-        driver.getGamepadButton(GamepadKeys.Button.DPAD_UP).whenPressed(turret.center());
+        driver.getGamepadButton(GamepadKeys.Button.DPAD_UP).whenPressed(turret.goToAngle(0));
         driver.getGamepadButton(GamepadKeys.Button.DPAD_LEFT).whenPressed(turret.goToAngle(90));
         driver.getGamepadButton(GamepadKeys.Button.DPAD_RIGHT).whenPressed(turret.goToAngle(-90));
         driver.getGamepadButton(GamepadKeys.Button.DPAD_DOWN).whenPressed(turret.goToAngle(180));
