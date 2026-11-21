@@ -1,0 +1,32 @@
+{
+  "schema": 2,
+  "name": "BIOBUZZ stub",
+  "wheelDiameterMm": 112,
+  "driveMotor": "swyft-spike-6000",
+  "driveRatio": 12.7,
+  "motors": {
+    "lf":          { "slot": "FRONT_LEFT",  "model": "", "mirrored": true },
+    "lr":          { "slot": "REAR_LEFT",   "model": "", "mirrored": true },
+    "rf":          { "slot": "FRONT_RIGHT", "model": "", "mirrored": false },
+    "rr":          { "slot": "REAR_RIGHT",  "model": "", "mirrored": false },
+    "intake":      { "slot": "INTAKE",      "model": "goBILDA-bare-6000", "ratio": 2.5, "mirrored": false },
+    "indexer":     { "slot": "CONVEYOR",    "model": "goBILDA-bare-6000", "ratio": 2.5, "mirrored": false },
+    "shooterLeft": { "slot": "SHOOTER",     "model": "goBILDA-bare-6000", "ratio": "43/30", "mirrored": false },
+    "shooterRight":{ "slot": "SHOOTER",     "model": "goBILDA-bare-6000", "ratio": "43/30", "mirrored": false }
+  },
+  "turretRatio": 1.0185,
+  "turret": {
+    "servo": { "name": "turret", "model": "axon-mini-plus", "mirrored": false },
+    "encoders": [
+      { "channel": 4, "model": "rev-tbe-v1", "turnsPerTurretTurn": 6.285714285714286 },
+      { "channel": 5, "model": "rev-tbe-v1", "turnsPerTurretTurn": 5.5 }
+    ],
+    "axis": { "x": 0.089, "y": 0 },
+    "cameraOnTurret": true,
+    "hood": { "name": "hood" },
+    "stopper": { "name": "brake" },
+    "colibriLeft": { "name": "colibriLeft" },
+    "colibriRight": { "name": "colibriRight" }
+  },
+  "run": { "field": "biobuzz", "alliance": "RED", "startPose": "RED wall, centre" }
+}

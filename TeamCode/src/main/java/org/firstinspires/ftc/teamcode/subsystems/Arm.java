@@ -7,17 +7,25 @@ import com.seattlesolvers.solverslib.command.SubsystemBase;
 import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
 
 public class Arm extends SubsystemBase {
-    private final ServoEx colibri;
+	private final ServoEx servoLeft;
+	private final ServoEx servoRight;
 
-    public Arm(HardwareMap hardwareMap){
-        colibri = new ServoEx(hardwareMap, "colibri");
-    }
+	public Arm(HardwareMap hardwareMap) {
+		servoLeft = new ServoEx(hardwareMap, "colibriLeft");
+		servoRight = new ServoEx(hardwareMap, "colibriRight");
+	}
 
-    public Command lower(){
-        return new InstantCommand(()-> colibri.set(1));
-    }
+	public Command lower() {
+		return new InstantCommand(() -> {
+			servoLeft.set(1);
+			servoRight.set(1);
+		});
+	}
 
-    public Command rise(){
-        return new InstantCommand(()-> colibri.set(0));
-    }
+	public Command rise() {
+		return new InstantCommand(() -> {
+			servoLeft.set(0);
+			servoRight.set(0);
+		});
+	}
 }
