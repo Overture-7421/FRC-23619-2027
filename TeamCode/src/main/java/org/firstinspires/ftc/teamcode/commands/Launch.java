@@ -28,6 +28,7 @@ public class Launch extends CommandBase {
 	public static double manualSpeed = 0.0;
 	public static double manualHood = 0.0;
 	public static double maxFeedErrorDeg = 5.0;
+	public static double maxApproachAngleDeg = 90.0;
 	public static double maxTrimSpeed = 10.0;
 	public static double maxTrimOmega = 0.5;
 
@@ -43,6 +44,7 @@ public class Launch extends CommandBase {
 	private final TelemetryManager telemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
 	private boolean feeding = false;
+	private boolean facingOpening = false;
 
 	public Launch(Turret turret, Shooter shooter, Hood hood, Camera camera, Chassis chassis, Alliance alliance,
 			BooleanSupplier shootRequested) {
@@ -67,6 +69,11 @@ public class Launch extends CommandBase {
 		Pose cell = Hive.getTarget(alliance, camera.getTilt());
 		Pose target = new Pose(cell.x() + camera.getTrimX(), cell.y() + camera.getTrimY());
 		targetWhileMoving.setTargetLocation(target);
+
+		double outward = camera.getTilt() == Hive.Tilt.AudienceUp ? target.y() - turretPose.y()
+				: turretPose.y() - target.y();
+		double approach = Math.toDegrees(Math.atan2(Math.abs(turretPose.x() - target.x()), outward));
+		facingOpening = approach < maxApproachAngleDeg;
 		Pose movingTarget = shootOnTheMove ? targetWhileMoving.getMovingTarget(turretPose, vx, vy) : target;
 
 		double dx = movingTarget.x() - turretPose.x();
@@ -90,6 +97,7 @@ public class Launch extends CommandBase {
 
 		telemetry.addData("Launch Distance", distance);
 		telemetry.addData("Launch MovingTarget", movingTarget);
+		telemetry.addData("Launch Approach deg", approach);
 		telemetry.addData("Launch Ready", isReady());
 	}
 
@@ -100,10 +108,10 @@ public class Launch extends CommandBase {
 	}
 
 	public boolean canFeed() {
-		return feeding && Math.abs(turret.getTargetAngle() - turret.getAngle()) < maxFeedErrorDeg;
+		return feeding && facingOpening && Math.abs(turret.getTargetAngle() - turret.getAngle()) < maxFeedErrorDeg;
 	}
 
 	public boolean isReady() {
-		return turret.isAtPosition() && shooter.isAtSpeed();
+		return facingOpening && turret.isAtPosition() && shooter.isAtSpeed();
 	}
 }
