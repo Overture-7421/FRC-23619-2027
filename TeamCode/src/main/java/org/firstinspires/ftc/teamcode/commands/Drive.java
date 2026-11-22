@@ -12,6 +12,7 @@ import com.seattlesolvers.solverslib.gamepad.GamepadKeys;
 
 @Configurable
 public class Drive extends CommandBase {
+	public static double speedMultiplier = 1.0;
 	public static double shootingMultiplier = 0.5;
 
 	private final Follower follower;
@@ -19,8 +20,6 @@ public class Drive extends CommandBase {
 	private final GamepadEx driver;
 
 	private double allianceMultiplier;
-	private final double speedMultiplier = 1;
-	private final double turnMultiplier = 0.7;
 
 	public Drive(Chassis chassis, Alliance alliance, GamepadEx driver) {
 		this.follower = chassis.getFollower();
@@ -45,7 +44,7 @@ public class Drive extends CommandBase {
 		follower.manual(ManualDrive.fieldCentric(
 				driver.getLeftY() * allianceMultiplier * speedMultiplier * shooting,
 				-driver.getLeftX() * allianceMultiplier * speedMultiplier * shooting,
-				-driver.getRightX() * turnMultiplier * shooting,
+				-driver.getRightX() * shooting,
 				follower.pose().heading()));
 	}
 

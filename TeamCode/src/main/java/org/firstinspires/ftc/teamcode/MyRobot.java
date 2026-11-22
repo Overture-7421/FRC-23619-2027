@@ -64,7 +64,7 @@ public class MyRobot extends Robot {
 	}
 
 	public void initTeleop() {
-		Pose start = alliance == Alliance.Red ? new Pose(10.68, 72, 0) : new Pose(133.32, 72, Math.PI);
+		Pose start = alliance == Alliance.Red ? new Pose(9.2, 72, 0) : new Pose(134.8, 72, Math.PI);
 		chassis.initPose(false, start);
 		chassis.setDefaultCommand(new Drive(chassis, alliance, driver));
 		Launch launch = new Launch(turret, shooter, hood, camera, chassis, alliance,

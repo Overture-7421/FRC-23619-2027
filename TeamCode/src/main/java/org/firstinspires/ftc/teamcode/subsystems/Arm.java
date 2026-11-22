@@ -9,7 +9,7 @@ import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
 
 @Configurable
 public class Arm extends SubsystemBase {
-	public static double closedPosition = 0.0667;
+	public static double closedPosition = 0.055;
 	public static double openPosition = 0.0;
 	public static boolean rightInverted = false;
 
