@@ -1,43 +1,60 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.bylazar.configurables.annotations.Configurable;
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.seattlesolvers.solverslib.command.InstantCommand;
 import com.seattlesolvers.solverslib.command.SubsystemBase;
 import com.seattlesolvers.solverslib.controller.PIDFController;
 import com.seattlesolvers.solverslib.hardware.motors.MotorEx;
 import com.seattlesolvers.solverslib.hardware.motors.MotorGroup;
-import com.bylazar.telemetry.PanelsTelemetry;
-import com.bylazar.telemetry.TelemetryManager;
 
+@Configurable
 public class Shooter extends SubsystemBase {
-	private final MotorGroup shooterMotors;
-	public static PIDFController controlSystem = new PIDFController(0.00000, 0.0, 0.0, 0.000);
+	public static PIDFController controlSystem = new PIDFController(0.004, 0.0, 0.0, 0.00047);
+	public static double TOL = 30;
+	private static final long STABLE_NS = 120_000_000;
 
+	private final MotorGroup shooterMotors;
 	private final TelemetryManager telemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
-	final int targetSpeed = 0;
-	int TOL = 20;
+	private long stableSince = 0;
 
 	public Shooter(HardwareMap hardwareMap) {
 		shooterMotors = new MotorGroup(new MotorEx(hardwareMap, "shooterLeft"),
 				new MotorEx(hardwareMap, "shooterRight"));
+		controlSystem.setSetPoint(0);
 	}
 
 	@Override
 	public void periodic() {
 		shooterMotors.set(controlSystem.calculate(shooterMotors.getVelocity()));
-		telemetry.addData("Ticks Speed", shooterMotors.getVelocity());
-		telemetry.addData("Goal Speed", targetSpeed);
-		telemetry.update();
+
+		telemetry.addData("Shooter Speed", shooterMotors.getVelocity());
+		telemetry.addData("Shooter Goal", controlSystem.getSetPoint());
+		telemetry.addData("Shooter AtSpeed", isAtSpeed());
 	}
 
-	public boolean isAtSpeed(int target) {
-		double error = Math.abs(shooterMotors.getVelocity() - target);
+	public void setSpeed(double speed) {
+		controlSystem.setSetPoint(speed);
+	}
 
-		if (error < TOL) {
-			return true;
+	public boolean isAtSpeed() {
+		double error = Math.abs(shooterMotors.getVelocity() - controlSystem.getSetPoint());
+
+		if (error < TOL && controlSystem.getSetPoint() > 0) {
+			if (stableSince == 0) {
+				stableSince = System.nanoTime();
+			}
+			return System.nanoTime() - stableSince > STABLE_NS;
 		}
 
+		stableSince = 0;
 		return false;
 	}
 
+	public InstantCommand stopShooter() {
+		return new InstantCommand(() -> setSpeed(0), this);
+	}
 }

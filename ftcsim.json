@@ -21,7 +21,7 @@
       { "channel": 4, "model": "rev-tbe-v1", "turnsPerTurretTurn": 6.285714285714286 },
       { "channel": 5, "model": "rev-tbe-v1", "turnsPerTurretTurn": 5.5 }
     ],
-    "axis": { "x": 0.089, "y": 0 },
+    "axis": { "x": 0.045, "y": 0 },
     "cameraOnTurret": true,
     "hood": { "name": "hood" },
     "stopper": { "name": "brake" },

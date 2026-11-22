@@ -3,12 +3,16 @@ package org.firstinspires.ftc.teamcode.commands;
 import org.firstinspires.ftc.teamcode.MyRobot.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.Chassis;
 
+import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.ManualDrive;
 import com.seattlesolvers.solverslib.command.CommandBase;
 import com.seattlesolvers.solverslib.gamepad.GamepadEx;
+import com.seattlesolvers.solverslib.gamepad.GamepadKeys;
 
+@Configurable
 public class Drive extends CommandBase {
+	public static double shootingMultiplier = 0.5;
 
 	private final Follower follower;
 	private final Alliance alliance;
@@ -36,11 +40,12 @@ public class Drive extends CommandBase {
 
 	@Override
 	public void execute() {
+		double shooting = driver.getTrigger(GamepadKeys.Trigger.RIGHT_TRIGGER) > 0.3 ? shootingMultiplier : 1.0;
 
 		follower.manual(ManualDrive.fieldCentric(
-				driver.getLeftY() * allianceMultiplier * speedMultiplier,
-				-driver.getLeftX() * allianceMultiplier * speedMultiplier,
-				-driver.getRightX() * turnMultiplier,
+				driver.getLeftY() * allianceMultiplier * speedMultiplier * shooting,
+				-driver.getLeftX() * allianceMultiplier * speedMultiplier * shooting,
+				-driver.getRightX() * turnMultiplier * shooting,
 				follower.pose().heading()));
 	}
 

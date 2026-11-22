@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.bylazar.telemetry.PanelsTelemetry;
 import com.seattlesolvers.solverslib.command.CommandOpMode;
 import com.seattlesolvers.solverslib.gamepad.GamepadEx;
 
@@ -24,6 +25,7 @@ public class TeleopMode extends CommandOpMode {
 	@Override
 	public void run() {
 		robot.run();
+		PanelsTelemetry.INSTANCE.getTelemetry().update(telemetry);
 	}
 
 	@Override
