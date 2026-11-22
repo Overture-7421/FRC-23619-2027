@@ -27,6 +27,7 @@ public class Launch extends CommandBase {
 	public static boolean useManual = false;
 	public static double manualSpeed = 0.0;
 	public static double manualHood = 0.0;
+	public static double maxFeedErrorDeg = 5.0;
 	public static double maxTrimSpeed = 10.0;
 	public static double maxTrimOmega = 0.5;
 
@@ -99,7 +100,7 @@ public class Launch extends CommandBase {
 	}
 
 	public boolean canFeed() {
-		return feeding;
+		return feeding && Math.abs(turret.getTargetAngle() - turret.getAngle()) < maxFeedErrorDeg;
 	}
 
 	public boolean isReady() {
