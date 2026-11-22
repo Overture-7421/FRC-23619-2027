@@ -28,7 +28,7 @@ public class Launch extends CommandBase {
 	public static double manualSpeed = 0.0;
 	public static double manualHood = 0.0;
 	public static double maxFeedErrorDeg = 5.0;
-	public static double maxApproachAngleDeg = 90.0;
+	public static double maxApproachAngleDeg = 80.0;
 	public static double maxTrimSpeed = 10.0;
 	public static double maxTrimOmega = 0.5;
 
