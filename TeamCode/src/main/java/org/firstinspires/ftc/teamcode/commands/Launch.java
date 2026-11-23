@@ -31,6 +31,9 @@ public class Launch extends CommandBase {
 	public static double maxApproachAngleDeg = 80.0;
 	public static double maxTrimSpeed = 10.0;
 	public static double maxTrimOmega = 0.5;
+	public static boolean correctPose = true;
+	public static double poseCorrectionTime = 0.5;
+	public static double minPoseCorrectionIn = 1.0;
 
 	private final Turret turret;
 	private final Shooter shooter;
@@ -45,6 +48,8 @@ public class Launch extends CommandBase {
 
 	private boolean feeding = false;
 	private boolean facingOpening = false;
+	private long steadySince = 0;
+	private int poseCorrections = 0;
 
 	public Launch(Turret turret, Shooter shooter, Hood hood, Camera camera, Chassis chassis, Alliance alliance,
 			BooleanSupplier shootRequested) {
@@ -87,8 +92,21 @@ public class Launch extends CommandBase {
 		shooter.setSpeed(keepShooterOn || shooting ? speed : 0);
 		hood.setPosition(useManual ? manualHood : LaunchConstants.DistanceToHood.get(distance));
 
-		camera.setTrimActive(turret.isAtPosition() && Math.hypot(velocity.vx, velocity.vy) < maxTrimSpeed
-				&& Math.abs(velocity.omega) < maxTrimOmega);
+		boolean steady = turret.isAtPosition() && Math.hypot(velocity.vx, velocity.vy) < maxTrimSpeed
+				&& Math.abs(velocity.omega) < maxTrimOmega;
+		camera.setTrimActive(steady);
+
+		if (!steady || !camera.hasTags()) {
+			steadySince = 0;
+		} else if (steadySince == 0) {
+			steadySince = System.nanoTime();
+		} else if (correctPose && System.nanoTime() - steadySince > poseCorrectionTime * 1e9
+				&& Math.hypot(camera.getTrimX(), camera.getTrimY()) > minPoseCorrectionIn) {
+			follower.setPose(new Pose(robot.x() - camera.getTrimX(), robot.y() - camera.getTrimY(), robot.heading()));
+			camera.resetTrim();
+			steadySince = 0;
+			poseCorrections++;
+		}
 
 		if (!shooting)
 			feeding = false;
@@ -98,6 +116,7 @@ public class Launch extends CommandBase {
 		telemetry.addData("Launch Distance", distance);
 		telemetry.addData("Launch MovingTarget", movingTarget);
 		telemetry.addData("Launch Approach deg", approach);
+		telemetry.addData("Launch PoseCorrections", poseCorrections);
 		telemetry.addData("Launch Ready", isReady());
 	}
 

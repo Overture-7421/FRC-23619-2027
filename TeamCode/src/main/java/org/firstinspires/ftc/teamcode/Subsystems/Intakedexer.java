@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.seattlesolvers.solverslib.command.Command;
 import com.seattlesolvers.solverslib.command.StartEndCommand;
 import com.seattlesolvers.solverslib.command.SubsystemBase;
+import com.seattlesolvers.solverslib.hardware.motors.Motor;
 import com.seattlesolvers.solverslib.hardware.motors.MotorEx;
 import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
 
@@ -18,9 +19,10 @@ public class Intakedexer extends SubsystemBase {
 	public static double intakePower = 1.0;
 	public static double indexerPower = 0.6;
 	public static double feedPower = 1.0;
-	public static double brakeClosed = 0.025;
-	public static double brakeOpen = 0.0417;
-	public static double sensorDistanceCm = 4.0;
+	public static double brakeClosed = 0.5;
+	public static double brakeOpen = 1.0;
+	public static double lowerSensorCm = 5.5;
+	public static double upperSensorCm = 3.5;
 	public static double sensorTimeMs = 150.0;
 
 	private final MotorEx intake;
@@ -38,6 +40,10 @@ public class Intakedexer extends SubsystemBase {
 	public Intakedexer(HardwareMap hardwareMap) {
 		intake = new MotorEx(hardwareMap, "intake");
 		indexer = new MotorEx(hardwareMap, "indexer");
+		intake.setInverted(true);
+		indexer.setInverted(true);
+		intake.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
+		indexer.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
 		brake = new ServoEx(hardwareMap, "brake");
 		lowerSensor = hardwareMap.get(ColorRangeSensor.class, "lowerSensor");
 		upperSensor = hardwareMap.get(ColorRangeSensor.class, "upperSensor");
@@ -76,11 +82,11 @@ public class Intakedexer extends SubsystemBase {
 	}
 
 	public boolean getLowerSensor() {
-		return lowerSensor.getDistance(DistanceUnit.CM) < sensorDistanceCm;
+		return lowerSensor.getDistance(DistanceUnit.CM) < lowerSensorCm;
 	}
 
 	public boolean getUpperSensor() {
-		return upperSensor.getDistance(DistanceUnit.CM) < sensorDistanceCm;
+		return upperSensor.getDistance(DistanceUnit.CM) < upperSensorCm;
 	}
 
 	public boolean isUpperFull() {

@@ -30,26 +30,27 @@ public class Turret extends SubsystemBase {
 	public static int encoder1MaxUs = 1024;
 	public static int encoder2MinUs = 1;
 	public static int encoder2MaxUs = 1024;
-	public static boolean encoder1Inverted = false;
-	public static boolean encoder2Inverted = false;
-	public static double encoder1OffsetTurns = 0.0;
-	public static double encoder2OffsetTurns = 0.0;
-	public static boolean servoInverted = false;
+	public static boolean encoder1Inverted = true;
+	public static boolean encoder2Inverted = true;
+	public static double encoder1OffsetTurns = 0.49707;
+	public static double encoder2OffsetTurns = -0.01270;
+	public static boolean servoInverted = true;
 	public static boolean useAxonPwmRange = true;
+	public static int servoFrameUs = 5000;
 
-	public static double kP = 0.010;
+	public static double kP = 0.005;
 	public static double kI = 0.0;
-	public static double kD = 0.00015;
-	public static double kS = 0.05;
-	public static double kV = 0.12;
+	public static double kD = 0.001;
+	public static double kS = 0.11;
+	public static double kV = 0.06;
 	public static double feedforwardWindowDeg = 30.0;
-	public static double maxPower = 1.0;
-	public static double rangeOfErrorDeg = 1.5;
+	public static double maxPower = 0.5;
+	public static double rangeOfErrorDeg = 2.0;
 
 	public static double forwardLimitDeg = 180.0;
 	public static double reverseLimitDeg = -180.0;
 	public static double hardLimitMarginDeg = 15.0;
-	public static double turretOffsetX = 1.774;
+	public static double turretOffsetX = 3.207;
 	public static double turretOffsetY = 0.0;
 	public static double aimOffsetDeg = 0.0;
 
@@ -77,9 +78,9 @@ public class Turret extends SubsystemBase {
 
 		torreta = new CRServoEx(hardwareMap, SERVO_NAME);
 		if (useAxonPwmRange) {
-			torreta.setPwm(new PwmControl.PwmRange(500, 2500));
+			torreta.setPwm(new PwmControl.PwmRange(500, 2500, servoFrameUs));
 		}
-		torreta.set(0);
+		torreta.getServo().setPower(0);
 
 		readEncoders();
 		targetAngle = Range.clip(turretAngle, reverseLimitDeg, forwardLimitDeg);

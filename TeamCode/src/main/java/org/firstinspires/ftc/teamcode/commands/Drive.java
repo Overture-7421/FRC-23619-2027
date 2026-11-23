@@ -13,7 +13,7 @@ import com.seattlesolvers.solverslib.gamepad.GamepadKeys;
 @Configurable
 public class Drive extends CommandBase {
 	public static double speedMultiplier = 1.0;
-	public static double shootingMultiplier = 0.5;
+	public static double shootingMultiplier = 0.85;
 
 	private final Follower follower;
 	private final Alliance alliance;

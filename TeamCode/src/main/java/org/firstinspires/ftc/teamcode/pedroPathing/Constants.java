@@ -39,13 +39,13 @@ public class Constants {
 
     public static PinpointConfig localizerConfig = new PinpointConfig(c -> {
         c.name.set("pinpoint");
-        c.xPodOffset.set(-5.0);
-        c.yPodOffset.set(0.5);
-        c.offsetUnits.set(DistanceUnit.INCH);
+        c.xPodOffset.set(-70.405553);
+        c.yPodOffset.set(59.093552);
+        c.offsetUnits.set(DistanceUnit.MM);
         c.globalDistanceUnit.set(DistanceUnit.INCH);
         c.podType.set(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-        c.xPodDirection.set(GoBildaPinpointDriver.EncoderDirection.REVERSED);
-        c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
+        c.xPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
+        c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.REVERSED);
     });
 
     public static ForesightConfig foresightConfig = new ForesightConfig(c -> {

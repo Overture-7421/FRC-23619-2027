@@ -28,6 +28,8 @@ public class Camera extends SubsystemBase {
 	public static boolean useTrim = true;
 	public static double trimBlend = 0.1;
 	public static double maxTrimIn = 12.0;
+	public static int framesToAcquire = 3;
+	public static double acquireAgreementIn = 2.0;
 
 	private final Limelight3A limelight;
 	private final Supplier<Pose> turretPose;
@@ -42,6 +44,9 @@ public class Camera extends SubsystemBase {
 	private double trimX = 0.0;
 	private double trimY = 0.0;
 	private boolean trimActive = true;
+	private int largeFrames = 0;
+	private double lastLargeX = 0.0;
+	private double lastLargeY = 0.0;
 
 	public Camera(HardwareMap hardwareMap, Alliance alliance, Supplier<Pose> turretPose) {
 		this.alliance = alliance;
@@ -59,9 +64,10 @@ public class Camera extends SubsystemBase {
 
 		telemetry.addData("Camera Tilt", tilt);
 		telemetry.addData("Camera Tags", tagsSeen);
-		telemetry.addData("Camera TagHeight", lastTagHeight);
-		telemetry.addData("Camera TrimX", trimX);
-		telemetry.addData("Camera TrimY", trimY);
+		// telemetry.addData("Camera TagHeight", lastTagHeight);
+		// telemetry.addData("Camera TrimX", trimX);
+		// telemetry.addData("Camera TrimY", trimY);
+		// telemetry.addData("Camera Acquiring", largeFrames >= framesToAcquire);
 	}
 
 	public Hive.Tilt getTilt() {
@@ -78,6 +84,15 @@ public class Camera extends SubsystemBase {
 
 	public void setTrimActive(boolean trimActive) {
 		this.trimActive = trimActive;
+	}
+
+	public void resetTrim() {
+		trimX = 0.0;
+		trimY = 0.0;
+	}
+
+	public boolean hasTags() {
+		return tagsSeen > 0;
 	}
 
 	private void readTags() {
@@ -141,9 +156,22 @@ public class Camera extends SubsystemBase {
 			return;
 		}
 
-		if (!trimActive || Math.hypot(errorX, errorY) > maxTrimIn)
+		if (!trimActive)
 			return;
 
+		if (Math.hypot(errorX, errorY) > maxTrimIn) {
+			boolean agrees = Math.hypot(errorX - lastLargeX, errorY - lastLargeY) < acquireAgreementIn;
+			largeFrames = agrees ? largeFrames + 1 : 1;
+			lastLargeX = errorX;
+			lastLargeY = errorY;
+			if (largeFrames >= framesToAcquire) {
+				trimX = errorX;
+				trimY = errorY;
+			}
+			return;
+		}
+
+		largeFrames = 0;
 		trimX += trimBlend * (errorX - trimX);
 		trimY += trimBlend * (errorY - trimY);
 	}

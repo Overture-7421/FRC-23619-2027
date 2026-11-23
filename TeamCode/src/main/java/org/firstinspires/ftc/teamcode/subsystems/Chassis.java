@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.seattlesolvers.solverslib.command.SubsystemBase;
@@ -8,6 +10,7 @@ import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 
 public class Chassis extends SubsystemBase {
 	private final Follower follower;
+	private final TelemetryManager telemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
 	public Chassis(Follower follower) {
 		this.follower = follower;
@@ -16,6 +19,11 @@ public class Chassis extends SubsystemBase {
 	@Override
 	public void periodic() {
 		follower.update();
+
+		Pose pose = follower.pose();
+		telemetry.addData("Robot X", pose.x());
+		telemetry.addData("Robot Y", pose.y());
+		telemetry.addData("Robot Heading deg", Math.toDegrees(pose.heading()));
 	}
 
 	public Follower getFollower() {

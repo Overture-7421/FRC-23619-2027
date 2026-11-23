@@ -12,7 +12,7 @@ import com.seattlesolvers.solverslib.hardware.motors.MotorGroup;
 
 @Configurable
 public class Shooter extends SubsystemBase {
-	public static PIDFController controlSystem = new PIDFController(0.004, 0.0, 0.0, 0.00047);
+	public static PIDFController controlSystem = new PIDFController(0.004, 0.0, 0.0, 0.00053);
 	public static double TOL = 30;
 	private static final long STABLE_NS = 120_000_000;
 
