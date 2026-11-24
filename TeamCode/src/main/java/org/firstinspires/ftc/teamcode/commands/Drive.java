@@ -14,6 +14,8 @@ import com.seattlesolvers.solverslib.gamepad.GamepadKeys;
 public class Drive extends CommandBase {
 	public static double speedMultiplier = 1.0;
 	public static double shootingMultiplier = 0.85;
+	public static double turnMultiplier = 0.7;
+	public static double shootingTurnMultiplier = 0.4;
 
 	private final Follower follower;
 	private final Alliance alliance;
@@ -39,12 +41,14 @@ public class Drive extends CommandBase {
 
 	@Override
 	public void execute() {
-		double shooting = driver.getTrigger(GamepadKeys.Trigger.RIGHT_TRIGGER) > 0.3 ? shootingMultiplier : 1.0;
+		boolean isShooting = driver.getTrigger(GamepadKeys.Trigger.RIGHT_TRIGGER) > 0.3;
+		double shooting = isShooting ? shootingMultiplier : 1.0;
+		double turn = isShooting ? shootingTurnMultiplier : turnMultiplier;
 
 		follower.manual(ManualDrive.fieldCentric(
 				driver.getLeftY() * allianceMultiplier * speedMultiplier * shooting,
 				-driver.getLeftX() * allianceMultiplier * speedMultiplier * shooting,
-				-driver.getRightX() * shooting,
+				-driver.getRightX() * turn,
 				follower.pose().heading()));
 	}
 

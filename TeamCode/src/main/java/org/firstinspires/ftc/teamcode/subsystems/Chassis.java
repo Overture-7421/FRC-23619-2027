@@ -10,6 +10,7 @@ import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 
 public class Chassis extends SubsystemBase {
 	private final Follower follower;
+	private Pose startPose;
 	private final TelemetryManager telemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
 	public Chassis(Follower follower) {
@@ -21,6 +22,11 @@ public class Chassis extends SubsystemBase {
 		follower.update();
 
 		Pose pose = follower.pose();
+		if (startPose != null) {
+			if (Math.hypot(pose.x() - startPose.x(), pose.y() - startPose.y()) > 0.5)
+				follower.setPose(startPose);
+			startPose = null;
+		}
 		telemetry.addData("Robot X", pose.x());
 		telemetry.addData("Robot Y", pose.y());
 		telemetry.addData("Robot Heading deg", Math.toDegrees(pose.heading()));
@@ -31,11 +37,8 @@ public class Chassis extends SubsystemBase {
 	}
 
 	public void initPose(boolean isAuto, Pose starting) {
-		if (PoseStorage.currentPose != null && !isAuto) {
-			follower.setPose(PoseStorage.currentPose);
-		} else {
-			follower.setPose(starting);
-		}
+		startPose = PoseStorage.currentPose != null && !isAuto ? PoseStorage.currentPose : starting;
+		follower.setPose(startPose);
 	}
 
 	public void setLastPose() {

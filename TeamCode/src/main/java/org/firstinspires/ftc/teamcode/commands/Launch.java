@@ -22,7 +22,7 @@ import org.firstinspires.ftc.teamcode.utils.TargetingWhileMoving;
 
 @Configurable
 public class Launch extends CommandBase {
-	public static boolean keepShooterOn = true;
+	public static boolean keepShooterOn = false;
 	public static boolean shootOnTheMove = true;
 	public static boolean useManual = false;
 	public static double manualSpeed = 0.0;
@@ -34,6 +34,8 @@ public class Launch extends CommandBase {
 	public static boolean correctPose = true;
 	public static double poseCorrectionTime = 0.5;
 	public static double minPoseCorrectionIn = 1.0;
+	public static double maxTurretRateDeg = 30.0;
+	public static int calmLoopsToFix = 5;
 
 	private final Turret turret;
 	private final Shooter shooter;
@@ -47,6 +49,9 @@ public class Launch extends CommandBase {
 	private final TelemetryManager telemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
 	private boolean feeding = false;
+	private double lastTurretAngle = 0.0;
+	private long lastTime = 0;
+	private int calmLoops = 0;
 	private boolean facingOpening = false;
 	private long steadySince = 0;
 	private int poseCorrections = 0;
@@ -92,9 +97,22 @@ public class Launch extends CommandBase {
 		shooter.setSpeed(keepShooterOn || shooting ? speed : 0);
 		hood.setPosition(useManual ? manualHood : LaunchConstants.DistanceToHood.get(distance));
 
-		boolean steady = turret.isAtPosition() && Math.hypot(velocity.vx, velocity.vy) < maxTrimSpeed
-				&& Math.abs(velocity.omega) < maxTrimOmega;
+		long now = System.nanoTime();
+		double turretRate = lastTime == 0 ? 0.0 : (turret.getAngle() - lastTurretAngle) / ((now - lastTime) / 1e9);
+		lastTurretAngle = turret.getAngle();
+		lastTime = now;
+
+		boolean robotSlow = Math.hypot(velocity.vx, velocity.vy) < maxTrimSpeed && Math.abs(velocity.omega) < maxTrimOmega;
+		boolean steady = turret.isAtPosition() && robotSlow;
 		camera.setTrimActive(steady);
+
+		calmLoops = robotSlow && Math.abs(turretRate) < maxTurretRateDeg ? calmLoops + 1 : 0;
+		if (correctPose && calmLoops >= calmLoopsToFix && camera.hasHeadingFix()) {
+			follower.setPose(turret.getRobotPose(camera.getPivotFix(), robot.heading() - camera.getHeadingError()));
+			camera.resetTrim();
+			steadySince = 0;
+			poseCorrections++;
+		}
 
 		if (!steady || !camera.hasTags()) {
 			steadySince = 0;
@@ -114,8 +132,8 @@ public class Launch extends CommandBase {
 			feeding = true;
 
 		telemetry.addData("Launch Distance", distance);
-		telemetry.addData("Launch MovingTarget", movingTarget);
-		telemetry.addData("Launch Approach deg", approach);
+		// telemetry.addData("Launch MovingTarget", movingTarget);
+		// telemetry.addData("Launch Approach deg", approach);
 		telemetry.addData("Launch PoseCorrections", poseCorrections);
 		telemetry.addData("Launch Ready", isReady());
 	}

@@ -15,6 +15,7 @@ import com.seattlesolvers.solverslib.command.InstantCommand;
 import com.seattlesolvers.solverslib.command.RunCommand;
 import com.seattlesolvers.solverslib.command.SubsystemBase;
 import com.seattlesolvers.solverslib.controller.PIDController;
+import com.seattlesolvers.solverslib.controller.PIDFController;
 import com.seattlesolvers.solverslib.hardware.motors.CRServoEx;
 
 import org.firstinspires.ftc.teamcode.utils.TurretMath;
@@ -39,11 +40,14 @@ public class Turret extends SubsystemBase {
 	public static int servoFrameUs = 5000;
 
 	public static double kP = 0.005;
-	public static double kI = 0.0;
+	public static double kI = 0.02;
 	public static double kD = 0.001;
 	public static double kS = 0.11;
-	public static double kV = 0.06;
-	public static double feedforwardWindowDeg = 30.0;
+	public static double kV = 0.047;
+	public static double aimLeadSec = 0.06;
+	public static double trackingRateDeg = 5.0;
+	public static double maxIntegralPower = 0.15;
+	public static double feedforwardWindowDeg = 60.0;
 	public static double maxPower = 0.5;
 	public static double rangeOfErrorDeg = 2.0;
 
@@ -65,6 +69,7 @@ public class Turret extends SubsystemBase {
 	private final TelemetryManager telemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
 	private double aimRate = 0.0;
+	private double lastPower = 0.0;
 	private boolean active = false;
 	private double turretAngle = 0.0;
 	private double targetAngle = 0.0;
@@ -81,6 +86,8 @@ public class Turret extends SubsystemBase {
 			torreta.setPwm(new PwmControl.PwmRange(500, 2500, servoFrameUs));
 		}
 		torreta.getServo().setPower(0);
+		controller.setIntegrationControl(new PIDFController.IntegrationControl(
+				PIDFController.IntegrationBehavior.CLEAR_AT_SP, 0.0, 0.0, 0.0));
 
 		readEncoders();
 		targetAngle = Range.clip(turretAngle, reverseLimitDeg, forwardLimitDeg);
@@ -108,15 +115,20 @@ public class Turret extends SubsystemBase {
 			controller.reset();
 		} else if (goodRead) {
 			controller.setPID(kP, kI, kD);
-			controller.setOpenF(kS);
+			double maxIntegral = kI > 0 ? maxIntegralPower / kI : 0.0;
+			controller.integrationControl.setIntegrationBounds(-maxIntegral, maxIntegral);
+			double aimRateDeg = Math.toDegrees(aimRate);
+			boolean tracking = Math.abs(aimRateDeg) > trackingRateDeg;
+			double setpoint = Range.clip(targetAngle + aimRateDeg * aimLeadSec, reverseLimitDeg, forwardLimitDeg);
+			controller.setOpenF(tracking ? 0.0 : kS);
 			controller.setTolerance(rangeOfErrorDeg);
 
-			power = controller.calculate(turretAngle, targetAngle);
+			power = controller.calculate(turretAngle, setpoint);
 			if (controller.atSetPoint()) {
 				power = 0.0;
 			}
-			if (Math.abs(error) < feedforwardWindowDeg) {
-				power += aimRate * kV;
+			if (tracking && Math.abs(error) < feedforwardWindowDeg) {
+				power += aimRate * kV + Math.signum(aimRate) * kS;
 			}
 			power = Range.clip(power, -maxPower, maxPower);
 
@@ -124,17 +136,20 @@ public class Turret extends SubsystemBase {
 				power = Math.min(power, 0.0);
 			if (turretAngle < reverseLimitDeg - hardLimitMarginDeg)
 				power = Math.max(power, 0.0);
+			lastPower = power;
+		} else if (isHealthy()) {
+			power = lastPower;
 		}
 		torreta.set(servoInverted ? -power : power);
 
 		telemetry.addData("Turret Angle", turretAngle);
 		telemetry.addData("Turret Target", targetAngle);
 		telemetry.addData("Turret Error", error);
-		telemetry.addData("Turret Power", power);
-		telemetry.addData("Turret AimRate deg/s", Math.toDegrees(aimRate));
-		telemetry.addData("Turret Encoder1", encoder1Deg);
-		telemetry.addData("Turret Encoder2", encoder2Deg);
-		telemetry.addData("Turret Encoder2 Residual", encoder2Residual);
+		// telemetry.addData("Turret Power", power);
+		// telemetry.addData("Turret AimRate deg/s", Math.toDegrees(aimRate));
+		// telemetry.addData("Turret Encoder1", encoder1Deg);
+		// telemetry.addData("Turret Encoder2", encoder2Deg);
+		// telemetry.addData("Turret Encoder2 Residual", encoder2Residual);
 		telemetry.addData("Turret Health", isHealthy() ? "OK" : "FAULT: " + lastFault);
 		aimRate = 0.0;
 	}
@@ -153,6 +168,13 @@ public class Turret extends SubsystemBase {
 		return new Pose(robot.x() + turretOffsetX * cos - turretOffsetY * sin,
 				robot.y() + turretOffsetX * sin + turretOffsetY * cos,
 				robot.heading() + Math.toRadians(turretAngle));
+	}
+
+	public Pose getRobotPose(Pose pivot, double heading) {
+		double cos = Math.cos(heading);
+		double sin = Math.sin(heading);
+		return new Pose(pivot.x() - turretOffsetX * cos + turretOffsetY * sin,
+				pivot.y() - turretOffsetX * sin - turretOffsetY * cos, heading);
 	}
 
 	public void aimAtFieldPosition(Pose robot, Pose target) {

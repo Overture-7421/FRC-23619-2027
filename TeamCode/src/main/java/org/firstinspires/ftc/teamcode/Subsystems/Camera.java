@@ -16,10 +16,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.MyRobot.Alliance;
 import org.firstinspires.ftc.teamcode.utils.Hive;
+import org.firstinspires.ftc.teamcode.utils.TurretMath;
 
 @Configurable
 public class Camera extends SubsystemBase {
-	public static double cameraForwardIn = 6.77;
+	public static double cameraForwardIn = 5.361;
 	public static double cameraHeightIn = 16.785;
 	public static double cameraPitchDeg = 45.0;
 	public static double maxHeightErrorIn = 5.0;
@@ -30,6 +31,9 @@ public class Camera extends SubsystemBase {
 	public static double maxTrimIn = 12.0;
 	public static int framesToAcquire = 3;
 	public static double acquireAgreementIn = 2.0;
+	public static double maxHeadingErrorDeg = 10.0;
+	public static double headingAgreementDeg = 3.0;
+	public static int minHeadingTags = 3;
 
 	private final Limelight3A limelight;
 	private final Supplier<Pose> turretPose;
@@ -47,6 +51,10 @@ public class Camera extends SubsystemBase {
 	private int largeFrames = 0;
 	private double lastLargeX = 0.0;
 	private double lastLargeY = 0.0;
+	private double headingErrorDeg = 0.0;
+	private int headingFrames = 0;
+	private Pose pivotFix = new Pose(0, 0, 0);
+	private final double[][] seen = new double[8][4];
 
 	public Camera(HardwareMap hardwareMap, Alliance alliance, Supplier<Pose> turretPose) {
 		this.alliance = alliance;
@@ -64,10 +72,11 @@ public class Camera extends SubsystemBase {
 
 		telemetry.addData("Camera Tilt", tilt);
 		telemetry.addData("Camera Tags", tagsSeen);
-		// telemetry.addData("Camera TagHeight", lastTagHeight);
-		// telemetry.addData("Camera TrimX", trimX);
-		// telemetry.addData("Camera TrimY", trimY);
-		// telemetry.addData("Camera Acquiring", largeFrames >= framesToAcquire);
+		telemetry.addData("Camera TagHeight", lastTagHeight);
+		telemetry.addData("Camera TrimX", trimX);
+		telemetry.addData("Camera TrimY", trimY);
+		telemetry.addData("Camera Acquiring", largeFrames >= framesToAcquire);
+		telemetry.addData("Camera HeadingError deg", headingErrorDeg);
 	}
 
 	public Hive.Tilt getTilt() {
@@ -89,10 +98,23 @@ public class Camera extends SubsystemBase {
 	public void resetTrim() {
 		trimX = 0.0;
 		trimY = 0.0;
+		headingFrames = 0;
 	}
 
 	public boolean hasTags() {
 		return tagsSeen > 0;
+	}
+
+	public boolean hasHeadingFix() {
+		return headingFrames >= framesToAcquire && Math.abs(headingErrorDeg) > maxHeadingErrorDeg;
+	}
+
+	public double getHeadingError() {
+		return Math.toRadians(headingErrorDeg);
+	}
+
+	public Pose getPivotFix() {
+		return pivotFix;
 	}
 
 	private void readTags() {
@@ -121,9 +143,15 @@ public class Camera extends SubsystemBase {
 			double left = -position.x;
 			heightSum += height;
 			lastTagHeight = height;
-			tagsSeen++;
 
 			Pose tagPose = Hive.getTagPose(id, tilt);
+			if (tagsSeen < seen.length) {
+				seen[tagsSeen][0] = forward;
+				seen[tagsSeen][1] = left;
+				seen[tagsSeen][2] = tagPose.x();
+				seen[tagsSeen][3] = tagPose.y();
+			}
+			tagsSeen++;
 			errorX += pivot.x() + forward * Math.cos(direction) - left * Math.sin(direction) - tagPose.x();
 			errorY += pivot.y() + forward * Math.sin(direction) + left * Math.cos(direction) - tagPose.y();
 
@@ -145,8 +173,43 @@ public class Camera extends SubsystemBase {
 			return;
 		lastHeightSum = heightSum;
 
-		updateTrim(errorX / tagsSeen, errorY / tagsSeen);
+		updateHeading(Math.toDegrees(direction));
+		if (Math.abs(headingErrorDeg) <= maxHeadingErrorDeg)
+			updateTrim(errorX / tagsSeen, errorY / tagsSeen);
 		updateTilt(audienceUp, scoringUp);
+	}
+
+	private void updateHeading(double believedDeg) {
+		int count = Math.min(tagsSeen, seen.length);
+		if (count < minHeadingTags) {
+			headingFrames = 0;
+			headingErrorDeg = 0.0;
+			return;
+		}
+
+		double meanForward = 0, meanLeft = 0, meanX = 0, meanY = 0;
+		for (int i = 0; i < count; i++) {
+			meanForward += seen[i][0] / count;
+			meanLeft += seen[i][1] / count;
+			meanX += seen[i][2] / count;
+			meanY += seen[i][3] / count;
+		}
+		double cross = 0, dot = 0;
+		for (int i = 0; i < count; i++) {
+			double forward = seen[i][0] - meanForward, left = seen[i][1] - meanLeft;
+			double x = seen[i][2] - meanX, y = seen[i][3] - meanY;
+			cross += forward * y - left * x;
+			dot += forward * x + left * y;
+		}
+
+		double seenDirection = Math.atan2(cross, dot);
+		double cos = Math.cos(seenDirection), sin = Math.sin(seenDirection);
+		pivotFix = new Pose(meanX - meanForward * cos + meanLeft * sin, meanY - meanForward * sin - meanLeft * cos,
+				seenDirection);
+
+		double error = TurretMath.wrap180(believedDeg - Math.toDegrees(seenDirection));
+		headingFrames = Math.abs(TurretMath.wrap180(error - headingErrorDeg)) < headingAgreementDeg ? headingFrames + 1 : 1;
+		headingErrorDeg = error;
 	}
 
 	private void updateTrim(double errorX, double errorY) {

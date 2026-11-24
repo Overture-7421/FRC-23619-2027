@@ -12,6 +12,7 @@ public class Arm extends SubsystemBase {
 	public static double closedPosition = 0.045;
 	public static double openPosition = 0.0;
 	public static boolean rightInverted = false;
+	public static boolean enabled = false;
 
 	private final ServoEx servoLeft;
 	private final ServoEx servoRight;
@@ -32,6 +33,8 @@ public class Arm extends SubsystemBase {
 	}
 
 	private void setPosition(double position) {
+		if (!enabled)
+			return;
 		servoLeft.set(position);
 		servoRight.set(position);
 	}
