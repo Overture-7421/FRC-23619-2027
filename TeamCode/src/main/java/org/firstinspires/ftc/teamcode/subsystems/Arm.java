@@ -9,10 +9,10 @@ import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
 
 @Configurable
 public class Arm extends SubsystemBase {
-	public static double closedPosition = 0.045;
-	public static double openPosition = 0.0;
-	public static boolean rightInverted = false;
-	public static boolean enabled = false;
+	public static double closedPosition = 1.0;
+	public static double openPosition = 0.5;
+	public static boolean rightInverted = true;
+	public static boolean enabled = true;
 
 	private final ServoEx servoLeft;
 	private final ServoEx servoRight;

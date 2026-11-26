@@ -15,7 +15,6 @@ import com.seattlesolvers.solverslib.command.InstantCommand;
 import com.seattlesolvers.solverslib.command.RunCommand;
 import com.seattlesolvers.solverslib.command.SubsystemBase;
 import com.seattlesolvers.solverslib.controller.PIDController;
-import com.seattlesolvers.solverslib.controller.PIDFController;
 import com.seattlesolvers.solverslib.hardware.motors.CRServoEx;
 
 import org.firstinspires.ftc.teamcode.utils.TurretMath;
@@ -33,28 +32,27 @@ public class Turret extends SubsystemBase {
 	public static int encoder2MaxUs = 1024;
 	public static boolean encoder1Inverted = true;
 	public static boolean encoder2Inverted = true;
-	public static double encoder1OffsetTurns = 0.49707;
-	public static double encoder2OffsetTurns = -0.01270;
+	public static double encoder1OffsetTurns = 0.19238;
+	public static double encoder2OffsetTurns = 0.46094;
 	public static boolean servoInverted = true;
 	public static boolean useAxonPwmRange = true;
 	public static int servoFrameUs = 5000;
 
-	public static double kP = 0.005;
-	public static double kI = 0.02;
+	public static double kP = 0.0035;
 	public static double kD = 0.001;
-	public static double kS = 0.11;
-	public static double kV = 0.047;
+	public static double kS = 0.13;
+	public static double kV = 0.042;
+	public static double kCable = 0.0;
 	public static double aimLeadSec = 0.06;
 	public static double trackingRateDeg = 5.0;
-	public static double maxIntegralPower = 0.15;
 	public static double feedforwardWindowDeg = 60.0;
-	public static double maxPower = 0.5;
+	public static double maxPower = 0.4;
 	public static double rangeOfErrorDeg = 2.0;
 
 	public static double forwardLimitDeg = 180.0;
 	public static double reverseLimitDeg = -180.0;
 	public static double hardLimitMarginDeg = 15.0;
-	public static double turretOffsetX = 3.207;
+	public static double turretOffsetX = 3.522;
 	public static double turretOffsetY = 0.0;
 	public static double aimOffsetDeg = 0.0;
 
@@ -64,7 +62,7 @@ public class Turret extends SubsystemBase {
 
 	private final OctoQuad octoQuad;
 	private final CRServoEx torreta;
-	private final PIDController controller = new PIDController(kP, kI, kD);
+	private final PIDController controller = new PIDController(kP, 0.0, kD);
 	private final OctoQuad.EncoderDataBlock encoderData = new OctoQuad.EncoderDataBlock();
 	private final TelemetryManager telemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
@@ -86,8 +84,6 @@ public class Turret extends SubsystemBase {
 			torreta.setPwm(new PwmControl.PwmRange(500, 2500, servoFrameUs));
 		}
 		torreta.getServo().setPower(0);
-		controller.setIntegrationControl(new PIDFController.IntegrationControl(
-				PIDFController.IntegrationBehavior.CLEAR_AT_SP, 0.0, 0.0, 0.0));
 
 		readEncoders();
 		targetAngle = Range.clip(turretAngle, reverseLimitDeg, forwardLimitDeg);
@@ -114,9 +110,7 @@ public class Turret extends SubsystemBase {
 		if (!active) {
 			controller.reset();
 		} else if (goodRead) {
-			controller.setPID(kP, kI, kD);
-			double maxIntegral = kI > 0 ? maxIntegralPower / kI : 0.0;
-			controller.integrationControl.setIntegrationBounds(-maxIntegral, maxIntegral);
+			controller.setPID(kP, 0.0, kD);
 			double aimRateDeg = Math.toDegrees(aimRate);
 			boolean tracking = Math.abs(aimRateDeg) > trackingRateDeg;
 			double setpoint = Range.clip(targetAngle + aimRateDeg * aimLeadSec, reverseLimitDeg, forwardLimitDeg);
@@ -126,6 +120,8 @@ public class Turret extends SubsystemBase {
 			power = controller.calculate(turretAngle, setpoint);
 			if (controller.atSetPoint()) {
 				power = 0.0;
+			} else {
+				power += kCable * turretAngle;
 			}
 			if (tracking && Math.abs(error) < feedforwardWindowDeg) {
 				power += aimRate * kV + Math.signum(aimRate) * kS;
@@ -141,6 +137,8 @@ public class Turret extends SubsystemBase {
 			power = lastPower;
 		}
 		torreta.set(servoInverted ? -power : power);
+		com.qualcomm.robotcore.util.RobotLog.dd("TempTurret", "loop target=%.1f a=%.2f p=%.3f ok=%b", targetAngle,
+				turretAngle, power, goodRead); // TEMP log
 
 		telemetry.addData("Turret Angle", turretAngle);
 		telemetry.addData("Turret Target", targetAngle);

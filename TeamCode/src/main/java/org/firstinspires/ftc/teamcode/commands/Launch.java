@@ -102,7 +102,8 @@ public class Launch extends CommandBase {
 		lastTurretAngle = turret.getAngle();
 		lastTime = now;
 
-		boolean robotSlow = Math.hypot(velocity.vx, velocity.vy) < maxTrimSpeed && Math.abs(velocity.omega) < maxTrimOmega;
+		boolean robotSlow = Math.hypot(velocity.vx, velocity.vy) < maxTrimSpeed
+				&& Math.abs(velocity.omega) < maxTrimOmega;
 		boolean steady = turret.isAtPosition() && robotSlow;
 		camera.setTrimActive(steady);
 

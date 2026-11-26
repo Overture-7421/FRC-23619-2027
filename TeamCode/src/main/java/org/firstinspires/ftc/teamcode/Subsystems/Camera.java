@@ -20,9 +20,9 @@ import org.firstinspires.ftc.teamcode.utils.TurretMath;
 
 @Configurable
 public class Camera extends SubsystemBase {
-	public static double cameraForwardIn = 5.361;
-	public static double cameraHeightIn = 16.785;
-	public static double cameraPitchDeg = 45.0;
+	public static double cameraForwardIn = 5.434666889764;
+	public static double cameraHeightIn = 16.96944346457;
+	public static double cameraPitchDeg = 41.0;
 	public static double maxHeightErrorIn = 5.0;
 	public static int framesToSwitch = 6;
 
@@ -208,7 +208,8 @@ public class Camera extends SubsystemBase {
 				seenDirection);
 
 		double error = TurretMath.wrap180(believedDeg - Math.toDegrees(seenDirection));
-		headingFrames = Math.abs(TurretMath.wrap180(error - headingErrorDeg)) < headingAgreementDeg ? headingFrames + 1 : 1;
+		headingFrames = Math.abs(TurretMath.wrap180(error - headingErrorDeg)) < headingAgreementDeg ? headingFrames + 1
+				: 1;
 		headingErrorDeg = error;
 	}
 
