@@ -16,14 +16,14 @@ import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
 
 @Configurable
 public class Intakedexer extends SubsystemBase {
-	public static double intakePower = 1.0;
-	public static double indexerPower = 0.6;
+	public static double intakePower = 0.7;
+	public static double indexerPower = 0.4;
 	public static double feedPower = 1.0;
 	public static double brakeClosed = 0.5;
 	public static double brakeOpen = 1.0;
 	public static double lowerSensorCm = 5.5;
 	public static double upperSensorCm = 3.5;
-	public static double sensorTimeMs = 150.0;
+	public static double sensorTimeMs = 500.0;
 
 	private final MotorEx intake;
 	private final MotorEx indexer;
@@ -34,6 +34,7 @@ public class Intakedexer extends SubsystemBase {
 
 	private boolean intaking = false;
 	private boolean shooting = false;
+	private boolean outtaking = false;
 	private long lowerSince = 0;
 	private long upperSince = 0;
 
@@ -59,22 +60,29 @@ public class Intakedexer extends SubsystemBase {
 		} else if (intaking) {
 			lowerSince = getLowerSensor() ? (lowerSince == 0 ? System.nanoTime() : lowerSince) : 0;
 			upperSince = getUpperSensor() ? (upperSince == 0 ? System.nanoTime() : upperSince) : 0;
-
 			brake.set(brakeClosed);
 			indexer.set(isUpperFull() ? 0 : indexerPower);
 			intake.set(isFull() ? 0 : intakePower);
+		} else if (outtaking) {
+			brake.set(brakeClosed);
+			indexer.set(-1);
+			intake.set(-1);
 		} else {
 			brake.set(brakeClosed);
 			intake.set(0);
 			indexer.set(0);
 		}
 
-		telemetry.addData("Intake UpperFull", isUpperFull());
-		telemetry.addData("Intake Full", isFull());
+		// telemetry.addData("Intake UpperFull", isUpperFull());
+		// telemetry.addData("Intake Full", isFull());
 	}
 
 	public Command intake() {
 		return new StartEndCommand(() -> intaking = true, () -> intaking = false, this);
+	}
+
+	public Command outtake() {
+		return new StartEndCommand(() -> outtaking = true, () -> outtaking = false, this);
 	}
 
 	public Command shoot() {

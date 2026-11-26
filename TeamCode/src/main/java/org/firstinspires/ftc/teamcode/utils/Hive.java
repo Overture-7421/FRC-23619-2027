@@ -34,6 +34,10 @@ public class Hive {
 		return alliance == Alliance.Red ? Tilt.AudienceUp : Tilt.ScoringUp;
 	}
 
+	public static boolean isHiveTag(int id) {
+		return id >= 30 && id < 46;
+	}
+
 	public static boolean isOwnTag(Alliance alliance, int id) {
 		int first = alliance == Alliance.Red ? 30 : 38;
 		return id >= first && id < first + 8;

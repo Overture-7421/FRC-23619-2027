@@ -40,8 +40,8 @@ public class Shooter extends SubsystemBase {
 		shooterMotors.set(controlSystem.getSetPoint() > 0 ? Math.max(power, 0.0) : 0.0);
 
 		telemetry.addData("Shooter Speed", shooterMotors.getVelocity());
-		telemetry.addData("Shooter Goal", controlSystem.getSetPoint());
-		telemetry.addData("Shooter AtSpeed", isAtSpeed());
+		// telemetry.addData("Shooter Goal", controlSystem.getSetPoint());
+		// telemetry.addData("Shooter AtSpeed", isAtSpeed());
 	}
 
 	public void setSpeed(double speed) {

@@ -27,9 +27,9 @@ public class Chassis extends SubsystemBase {
 				follower.setPose(startPose);
 			startPose = null;
 		}
-		telemetry.addData("Robot X", pose.x());
-		telemetry.addData("Robot Y", pose.y());
-		telemetry.addData("Robot Heading deg", Math.toDegrees(pose.heading()));
+		// telemetry.addData("Robot X", pose.x());
+		// telemetry.addData("Robot Y", pose.y());
+		// telemetry.addData("Robot Heading deg", Math.toDegrees(pose.heading()));
 	}
 
 	public Follower getFollower() {

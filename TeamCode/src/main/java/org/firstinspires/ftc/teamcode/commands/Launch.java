@@ -36,6 +36,8 @@ public class Launch extends CommandBase {
 	public static double minPoseCorrectionIn = 1.0;
 	public static double maxTurretRateDeg = 30.0;
 	public static int calmLoopsToFix = 5;
+	public static double startHoldSec = 1.0;
+	public static double sweepRateDeg = 60.0;
 
 	private final Turret turret;
 	private final Shooter shooter;
@@ -44,6 +46,7 @@ public class Launch extends CommandBase {
 	private final Follower follower;
 	private final Alliance alliance;
 	private final BooleanSupplier shootRequested;
+	private final BooleanSupplier searchRequested;
 	private final TargetingWhileMoving targetWhileMoving = new TargetingWhileMoving(
 			LaunchConstants.DistanceToTimeOfFlight);
 	private final TelemetryManager telemetry = PanelsTelemetry.INSTANCE.getTelemetry();
@@ -55,9 +58,12 @@ public class Launch extends CommandBase {
 	private boolean facingOpening = false;
 	private long steadySince = 0;
 	private int poseCorrections = 0;
+	private long startTime = 0;
+	private int sweepDirection = 1;
+	private boolean wasSearching = false;
 
 	public Launch(Turret turret, Shooter shooter, Hood hood, Camera camera, Chassis chassis, Alliance alliance,
-			BooleanSupplier shootRequested) {
+			BooleanSupplier shootRequested, BooleanSupplier searchRequested) {
 		this.turret = turret;
 		this.shooter = shooter;
 		this.hood = hood;
@@ -65,7 +71,13 @@ public class Launch extends CommandBase {
 		this.follower = chassis.getFollower();
 		this.alliance = alliance;
 		this.shootRequested = shootRequested;
+		this.searchRequested = searchRequested;
 		addRequirements(turret, shooter, hood);
+	}
+
+	@Override
+	public void initialize() {
+		startTime = System.nanoTime();
 	}
 
 	@Override
@@ -90,15 +102,31 @@ public class Launch extends CommandBase {
 		double dy = movingTarget.y() - turretPose.y();
 		double distance = Math.hypot(dx, dy);
 
-		turret.aimAtFieldPosition(robot, movingTarget);
-		turret.setAimRate((dy * vx - dx * vy) / Math.max(dx * dx + dy * dy, 1e-6) - velocity.omega);
-		boolean shooting = shootRequested.getAsBoolean();
+		long now = System.nanoTime();
+		double dt = lastTime == 0 ? 0.0 : (now - lastTime) / 1e9;
+		boolean searching = searchRequested.getAsBoolean();
+		boolean holding = now - startTime < startHoldSec * 1e9 || (searching && camera.hasTags());
+		if (holding) {
+			turret.setTargetAngle(turret.getAngle());
+		} else if (searching) {
+			double sweep = wasSearching ? turret.getTargetAngle() : turret.getAngle();
+			if (sweep > Turret.forwardLimitDeg - 5)
+				sweepDirection = -1;
+			if (sweep < Turret.reverseLimitDeg + 5)
+				sweepDirection = 1;
+			turret.setTargetAngle(sweep + sweepDirection * sweepRateDeg * dt);
+			turret.setAimRate(Math.toRadians(sweepDirection * sweepRateDeg));
+		} else {
+			turret.aimAtFieldPosition(robot, movingTarget);
+			turret.setAimRate((dy * vx - dx * vy) / Math.max(dx * dx + dy * dy, 1e-6) - velocity.omega);
+		}
+		wasSearching = searching && !holding;
+		boolean shooting = shootRequested.getAsBoolean() && !searching && !holding;
 		double speed = useManual ? manualSpeed : LaunchConstants.DistanceToShooter.get(distance);
 		shooter.setSpeed(keepShooterOn || shooting ? speed : 0);
 		hood.setPosition(useManual ? manualHood : LaunchConstants.DistanceToHood.get(distance));
 
-		long now = System.nanoTime();
-		double turretRate = lastTime == 0 ? 0.0 : (turret.getAngle() - lastTurretAngle) / ((now - lastTime) / 1e9);
+		double turretRate = dt == 0 ? 0.0 : (turret.getAngle() - lastTurretAngle) / dt;
 		lastTurretAngle = turret.getAngle();
 		lastTime = now;
 
@@ -135,7 +163,7 @@ public class Launch extends CommandBase {
 		telemetry.addData("Launch Distance", distance);
 		// telemetry.addData("Launch MovingTarget", movingTarget);
 		// telemetry.addData("Launch Approach deg", approach);
-		telemetry.addData("Launch PoseCorrections", poseCorrections);
+		// telemetry.addData("Launch PoseCorrections", poseCorrections);
 		telemetry.addData("Launch Ready", isReady());
 	}
 

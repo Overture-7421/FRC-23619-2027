@@ -54,7 +54,7 @@ public class Camera extends SubsystemBase {
 	private double headingErrorDeg = 0.0;
 	private int headingFrames = 0;
 	private Pose pivotFix = new Pose(0, 0, 0);
-	private final double[][] seen = new double[8][4];
+	private final double[][] seen = new double[16][4];
 
 	public Camera(HardwareMap hardwareMap, Alliance alliance, Supplier<Pose> turretPose) {
 		this.alliance = alliance;
@@ -70,13 +70,13 @@ public class Camera extends SubsystemBase {
 	public void periodic() {
 		readTags();
 
-		telemetry.addData("Camera Tilt", tilt);
+		// telemetry.addData("Camera Tilt", tilt);
 		telemetry.addData("Camera Tags", tagsSeen);
-		telemetry.addData("Camera TagHeight", lastTagHeight);
-		telemetry.addData("Camera TrimX", trimX);
-		telemetry.addData("Camera TrimY", trimY);
-		telemetry.addData("Camera Acquiring", largeFrames >= framesToAcquire);
-		telemetry.addData("Camera HeadingError deg", headingErrorDeg);
+		// telemetry.addData("Camera TagHeight", lastTagHeight);
+		// telemetry.addData("Camera TrimX", trimX);
+		// telemetry.addData("Camera TrimY", trimY);
+		// telemetry.addData("Camera Acquiring", largeFrames >= framesToAcquire);
+		// telemetry.addData("Camera HeadingError deg", headingErrorDeg);
 	}
 
 	public Hive.Tilt getTilt() {
@@ -134,17 +134,24 @@ public class Camera extends SubsystemBase {
 
 		for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
 			int id = tag.getFiducialId();
-			if (!Hive.isOwnTag(alliance, id))
+			if (!Hive.isHiveTag(id))
 				continue;
+			boolean own = Hive.isOwnTag(alliance, id);
 
 			Position position = tag.getTargetPoseCameraSpace().getPosition().toUnit(DistanceUnit.INCH);
 			double height = cameraHeightIn + position.z * Math.sin(pitch) - position.y * Math.cos(pitch);
 			double forward = cameraForwardIn + position.z * Math.cos(pitch) + position.y * Math.sin(pitch);
 			double left = -position.x;
+
+			boolean isUp = Math.abs(height - Hive.UP_TAG_HEIGHT) < maxHeightErrorIn;
+			boolean heightKnown = isUp || Math.abs(height - Hive.DOWN_TAG_HEIGHT) < maxHeightErrorIn;
+			Hive.Tilt seenTilt = isUp == Hive.isAudienceTag(id) ? Hive.Tilt.AudienceUp : Hive.Tilt.ScoringUp;
+			if (!own && !heightKnown)
+				continue;
 			heightSum += height;
 			lastTagHeight = height;
 
-			Pose tagPose = Hive.getTagPose(id, tilt);
+			Pose tagPose = Hive.getTagPose(id, own ? tilt : seenTilt);
 			if (tagsSeen < seen.length) {
 				seen[tagsSeen][0] = forward;
 				seen[tagsSeen][1] = left;
@@ -155,15 +162,9 @@ public class Camera extends SubsystemBase {
 			errorX += pivot.x() + forward * Math.cos(direction) - left * Math.sin(direction) - tagPose.x();
 			errorY += pivot.y() + forward * Math.sin(direction) + left * Math.cos(direction) - tagPose.y();
 
-			boolean isUp;
-			if (Math.abs(height - Hive.UP_TAG_HEIGHT) < maxHeightErrorIn)
-				isUp = true;
-			else if (Math.abs(height - Hive.DOWN_TAG_HEIGHT) < maxHeightErrorIn)
-				isUp = false;
-			else
+			if (!own || !heightKnown)
 				continue;
-
-			if (isUp == Hive.isAudienceTag(id))
+			if (seenTilt == Hive.Tilt.AudienceUp)
 				audienceUp++;
 			else
 				scoringUp++;

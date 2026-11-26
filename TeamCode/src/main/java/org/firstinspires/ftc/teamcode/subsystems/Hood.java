@@ -18,7 +18,7 @@ public class Hood extends SubsystemBase {
 
 	@Override
 	public void periodic() {
-		telemetry.addData("Hood Position", position);
+		// telemetry.addData("Hood Position", position);
 	}
 
 	public void setPosition(double position) {

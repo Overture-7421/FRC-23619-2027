@@ -32,25 +32,24 @@ public class Turret extends SubsystemBase {
 	public static int encoder2MaxUs = 1024;
 	public static boolean encoder1Inverted = true;
 	public static boolean encoder2Inverted = true;
-	public static double encoder1OffsetTurns = 0.19238;
-	public static double encoder2OffsetTurns = 0.46094;
-	public static boolean servoInverted = true;
+	public static double encoder1OffsetTurns = 0.20996;
+	public static double encoder2OffsetTurns = 0.47461;
+	public static boolean servoInverted = false;
 	public static boolean useAxonPwmRange = true;
 	public static int servoFrameUs = 5000;
 
-	public static double kP = 0.0035;
-	public static double kD = 0.001;
+	public static double kP = 0.0095;
+	public static double kD = 0.0015;
 	public static double kS = 0.13;
-	public static double kV = 0.042;
-	public static double kCable = 0.0;
+	public static double kV = 0.07;
 	public static double aimLeadSec = 0.06;
 	public static double trackingRateDeg = 5.0;
 	public static double feedforwardWindowDeg = 60.0;
 	public static double maxPower = 0.4;
 	public static double rangeOfErrorDeg = 2.0;
 
-	public static double forwardLimitDeg = 180.0;
-	public static double reverseLimitDeg = -180.0;
+	public static double forwardLimitDeg = 200.0;
+	public static double reverseLimitDeg = -200.0;
 	public static double hardLimitMarginDeg = 15.0;
 	public static double turretOffsetX = 3.522;
 	public static double turretOffsetY = 0.0;
@@ -120,8 +119,6 @@ public class Turret extends SubsystemBase {
 			power = controller.calculate(turretAngle, setpoint);
 			if (controller.atSetPoint()) {
 				power = 0.0;
-			} else {
-				power += kCable * turretAngle;
 			}
 			if (tracking && Math.abs(error) < feedforwardWindowDeg) {
 				power += aimRate * kV + Math.signum(aimRate) * kS;
@@ -140,9 +137,9 @@ public class Turret extends SubsystemBase {
 		com.qualcomm.robotcore.util.RobotLog.dd("TempTurret", "loop target=%.1f a=%.2f p=%.3f ok=%b", targetAngle,
 				turretAngle, power, goodRead); // TEMP log
 
-		telemetry.addData("Turret Angle", turretAngle);
-		telemetry.addData("Turret Target", targetAngle);
-		telemetry.addData("Turret Error", error);
+		// telemetry.addData("Turret Angle", turretAngle);
+		// telemetry.addData("Turret Target", targetAngle);
+		// telemetry.addData("Turret Error", error);
 		// telemetry.addData("Turret Power", power);
 		// telemetry.addData("Turret AimRate deg/s", Math.toDegrees(aimRate));
 		// telemetry.addData("Turret Encoder1", encoder1Deg);

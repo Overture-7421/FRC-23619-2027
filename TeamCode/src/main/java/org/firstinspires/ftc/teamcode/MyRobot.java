@@ -68,7 +68,8 @@ public class MyRobot extends Robot {
 		chassis.initPose(false, start);
 		chassis.setDefaultCommand(new Drive(chassis, alliance, driver));
 		Launch launch = new Launch(turret, shooter, hood, camera, chassis, alliance,
-				() -> driver.getTrigger(GamepadKeys.Trigger.RIGHT_TRIGGER) > 0.3);
+				() -> driver.getTrigger(GamepadKeys.Trigger.RIGHT_TRIGGER) > 0.3,
+				() -> driver.getButton(GamepadKeys.Button.Y));
 		turret.setDefaultCommand(launch);
 
 		new Trigger(() -> driver.getTrigger(GamepadKeys.Trigger.LEFT_TRIGGER) > 0.3)
@@ -76,9 +77,12 @@ public class MyRobot extends Robot {
 
 		new Trigger(launch::canFeed).whileActiveContinuous(intake.shoot());
 
-		driver.getGamepadButton(GamepadKeys.Button.RIGHT_BUMPER)
+		driver.getGamepadButton(GamepadKeys.Button.LEFT_BUMPER)
 				.whenPressed(arm.open())
 				.whenReleased(arm.close());
+
+		driver.getGamepadButton(GamepadKeys.Button.B)
+				.whileActiveContinuous(intake.outtake());
 	}
 
 	public void onEnd() {
