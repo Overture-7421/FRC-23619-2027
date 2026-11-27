@@ -75,7 +75,7 @@ public class MyRobot extends Robot {
 	}
 
 	public Hood getHood(){
-		return this.getHood();
+		return this.hood;
 	}
 
 	public Turret getTurret(){

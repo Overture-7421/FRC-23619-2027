@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.Autos;
 
 import static com.pedropathing.api.Paths.line;
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
 
 import com.pedropathing.api.Paths;
 import com.pedropathing.api.PoseFactory;
@@ -32,14 +31,6 @@ public class AutoIndependent extends CommandOpMode {
     // private final MyRobot.Alliance alliance;
     private GamepadEx driver;
 
-    public AutoIndependent() {
-        // alliance = allianceColor;
-
-        driver = new GamepadEx(gamepad1);
-        robot = new MyRobot(MyRobot.Alliance.Red, hardwareMap, driver);
-        follower = robot.getFollower();
-    }
-
     private final PoseFactory poseFactory = PoseFactory.degrees();
 
     private final Pose start = poseFactory.of(27.1759, 133.8414, 270);
@@ -55,8 +46,11 @@ public class AutoIndependent extends CommandOpMode {
     public void initialize() {
         super.reset();
 
-
+        driver = new GamepadEx(gamepad1);
+        robot = new MyRobot(MyRobot.Alliance.Red, hardwareMap, driver);
+        follower = robot.getFollower();
         chassis = robot.getChassis();
+        chassis.initPose(true, start);
         SequentialCommandGroup autoCommand = new SequentialCommandGroup(
                 new ParallelDeadlineGroup(
                         new FollowPathCommand(follower, pathOne, false, 0.7)
