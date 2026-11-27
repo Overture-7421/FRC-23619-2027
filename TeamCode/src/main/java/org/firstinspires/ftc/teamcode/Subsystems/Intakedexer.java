@@ -18,7 +18,7 @@ import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
 public class Intakedexer extends SubsystemBase {
 	public static double intakePower = 0.7;
 	public static double indexerPower = 0.4;
-	public static double feedPower = 1.0;
+	public static double feedPower = 0.8;
 	public static double brakeClosed = 0.5;
 	public static double brakeOpen = 1.0;
 	public static double lowerSensorCm = 5.5;

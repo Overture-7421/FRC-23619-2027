@@ -27,13 +27,6 @@ public class TurretTuning extends CommandOpMode {
 		driver.getGamepadButton(GamepadKeys.Button.DPAD_RIGHT).whenPressed(turret.goToAngle(-90));
 		driver.getGamepadButton(GamepadKeys.Button.DPAD_DOWN).whenPressed(turret.goToAngle(180));
 		driver.getGamepadButton(GamepadKeys.Button.B).whenPressed(turret.stop());
-		// TEMP: 10 degree nudges
-		driver.getGamepadButton(GamepadKeys.Button.LEFT_BUMPER).whenPressed(
-				new com.seattlesolvers.solverslib.command.InstantCommand(
-						() -> turret.setTargetAngle(turret.getTargetAngle() + 10)));
-		driver.getGamepadButton(GamepadKeys.Button.RIGHT_BUMPER).whenPressed(
-				new com.seattlesolvers.solverslib.command.InstantCommand(
-						() -> turret.setTargetAngle(turret.getTargetAngle() - 10)));
 	}
 
 	@Override
@@ -47,8 +40,6 @@ public class TurretTuning extends CommandOpMode {
 	@Override
 	public void run() {
 		super.run();
-		com.qualcomm.robotcore.util.RobotLog.dd("TempTurret", "bat=%.2f",
-				hardwareMap.voltageSensor.iterator().next().getVoltage()); // TEMP log
 
 		telemetry.addData("Turret angle", "%.2f deg", turret.getAngle());
 		telemetry.addData("Target", "%.2f deg", turret.getTargetAngle());

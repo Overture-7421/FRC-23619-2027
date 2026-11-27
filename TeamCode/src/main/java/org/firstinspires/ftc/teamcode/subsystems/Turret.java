@@ -32,8 +32,8 @@ public class Turret extends SubsystemBase {
 	public static int encoder2MaxUs = 1024;
 	public static boolean encoder1Inverted = true;
 	public static boolean encoder2Inverted = true;
-	public static double encoder1OffsetTurns = 0.20996;
-	public static double encoder2OffsetTurns = 0.47461;
+	public static double encoder1OffsetTurns = 0.16309;
+	public static double encoder2OffsetTurns = -0.49707;
 	public static boolean servoInverted = false;
 	public static boolean useAxonPwmRange = true;
 	public static int servoFrameUs = 5000;
@@ -41,15 +41,21 @@ public class Turret extends SubsystemBase {
 	public static double kP = 0.0095;
 	public static double kD = 0.0015;
 	public static double kS = 0.13;
-	public static double kV = 0.07;
-	public static double aimLeadSec = 0.06;
+	public static double kV = 0.164;
+	public static double kSTracking = 0.025;
+	public static double movingSpeedDeg = 10.0;
+	public static double aimLeadSec = 0.0;
 	public static double trackingRateDeg = 5.0;
 	public static double feedforwardWindowDeg = 60.0;
 	public static double maxPower = 0.4;
 	public static double rangeOfErrorDeg = 2.0;
+	public static double stallPower = 0.25;
+	public static double stallMoveDeg = 2.0;
+	public static double stallSec = 1.0;
+	public static double stallRestSec = 2.0;
 
-	public static double forwardLimitDeg = 200.0;
-	public static double reverseLimitDeg = -200.0;
+	public static double forwardLimitDeg = 180.0;
+	public static double reverseLimitDeg = -180.0;
 	public static double hardLimitMarginDeg = 15.0;
 	public static double turretOffsetX = 3.522;
 	public static double turretOffsetY = 0.0;
@@ -67,6 +73,12 @@ public class Turret extends SubsystemBase {
 
 	private double aimRate = 0.0;
 	private double lastPower = 0.0;
+	private double stallAngle = 0.0;
+	private long stallSince = 0;
+	private long restUntil = 0;
+	private double speed = 0.0;
+	private double speedAngle = 0.0;
+	private long speedTime = 0;
 	private boolean active = false;
 	private double turretAngle = 0.0;
 	private double targetAngle = 0.0;
@@ -103,6 +115,12 @@ public class Turret extends SubsystemBase {
 	@Override
 	public void periodic() {
 		boolean goodRead = readEncoders();
+		long now = System.nanoTime();
+		if (goodRead) {
+			speed = speedTime == 0 ? 0.0 : (turretAngle - speedAngle) / ((now - speedTime) / 1e9);
+			speedAngle = turretAngle;
+			speedTime = now;
+		}
 
 		double error = targetAngle - turretAngle;
 		double power = 0.0;
@@ -121,7 +139,8 @@ public class Turret extends SubsystemBase {
 				power = 0.0;
 			}
 			if (tracking && Math.abs(error) < feedforwardWindowDeg) {
-				power += aimRate * kV + Math.signum(aimRate) * kS;
+				boolean moving = speed * Math.signum(aimRate) > movingSpeedDeg;
+				power += aimRate * kV + Math.signum(aimRate) * (moving ? kSTracking : kS);
 			}
 			power = Range.clip(power, -maxPower, maxPower);
 
@@ -133,10 +152,17 @@ public class Turret extends SubsystemBase {
 		} else if (isHealthy()) {
 			power = lastPower;
 		}
-		torreta.set(servoInverted ? -power : power);
-		com.qualcomm.robotcore.util.RobotLog.dd("TempTurret", "loop target=%.1f a=%.2f p=%.3f ok=%b", targetAngle,
-				turretAngle, power, goodRead); // TEMP log
 
+		if (now < restUntil) {
+			power = 0.0;
+		}
+		if (Math.abs(power) < stallPower || Math.abs(turretAngle - stallAngle) > stallMoveDeg) {
+			stallAngle = turretAngle;
+			stallSince = now;
+		} else if (now - stallSince > stallSec * 1e9) {
+			restUntil = now + (long) (stallRestSec * 1e9);
+		}
+		torreta.set(servoInverted ? -power : power);
 		// telemetry.addData("Turret Angle", turretAngle);
 		// telemetry.addData("Turret Target", targetAngle);
 		// telemetry.addData("Turret Error", error);
@@ -145,7 +171,8 @@ public class Turret extends SubsystemBase {
 		// telemetry.addData("Turret Encoder1", encoder1Deg);
 		// telemetry.addData("Turret Encoder2", encoder2Deg);
 		// telemetry.addData("Turret Encoder2 Residual", encoder2Residual);
-		telemetry.addData("Turret Health", isHealthy() ? "OK" : "FAULT: " + lastFault);
+		telemetry.addData("Turret Health",
+				now < restUntil ? "STALLED, RETRYING" : isHealthy() ? "OK" : "FAULT: " + lastFault);
 		aimRate = 0.0;
 	}
 
@@ -228,6 +255,9 @@ public class Turret extends SubsystemBase {
 			return fault("encoders disagree (slipped gear or bad offset?)");
 		}
 
+		if (badReads < 1000) {
+			angle += TurretMath.UNIQUE_RANGE_DEG * Math.round((turretAngle - angle) / TurretMath.UNIQUE_RANGE_DEG);
+		}
 		turretAngle = angle;
 		badReads = 0;
 		return true;

@@ -32,8 +32,10 @@ public class Camera extends SubsystemBase {
 	public static int framesToAcquire = 3;
 	public static double acquireAgreementIn = 2.0;
 	public static double maxHeadingErrorDeg = 10.0;
+	public static double coarseHeadingErrorDeg = 30.0;
+	public static double fineHeadingRangeIn = 55.0;
 	public static double headingAgreementDeg = 3.0;
-	public static int minHeadingTags = 3;
+	public static int minHeadingTags = 2;
 
 	private final Limelight3A limelight;
 	private final Supplier<Pose> turretPose;
@@ -53,6 +55,8 @@ public class Camera extends SubsystemBase {
 	private double lastLargeY = 0.0;
 	private double headingErrorDeg = 0.0;
 	private int headingFrames = 0;
+	private int headingTags = 0;
+	private double headingRange = 0.0;
 	private Pose pivotFix = new Pose(0, 0, 0);
 	private final double[][] seen = new double[16][4];
 
@@ -106,7 +110,11 @@ public class Camera extends SubsystemBase {
 	}
 
 	public boolean hasHeadingFix() {
-		return headingFrames >= framesToAcquire && Math.abs(headingErrorDeg) > maxHeadingErrorDeg;
+		return headingFrames >= framesToAcquire && Math.abs(headingErrorDeg) > headingLimit();
+	}
+
+	private double headingLimit() {
+		return headingTags >= 3 && headingRange < fineHeadingRangeIn ? maxHeadingErrorDeg : coarseHeadingErrorDeg;
 	}
 
 	public double getHeadingError() {
@@ -142,7 +150,6 @@ public class Camera extends SubsystemBase {
 			double height = cameraHeightIn + position.z * Math.sin(pitch) - position.y * Math.cos(pitch);
 			double forward = cameraForwardIn + position.z * Math.cos(pitch) + position.y * Math.sin(pitch);
 			double left = -position.x;
-
 			boolean isUp = Math.abs(height - Hive.UP_TAG_HEIGHT) < maxHeightErrorIn;
 			boolean heightKnown = isUp || Math.abs(height - Hive.DOWN_TAG_HEIGHT) < maxHeightErrorIn;
 			Hive.Tilt seenTilt = isUp == Hive.isAudienceTag(id) ? Hive.Tilt.AudienceUp : Hive.Tilt.ScoringUp;
@@ -175,13 +182,14 @@ public class Camera extends SubsystemBase {
 		lastHeightSum = heightSum;
 
 		updateHeading(Math.toDegrees(direction));
-		if (Math.abs(headingErrorDeg) <= maxHeadingErrorDeg)
+		if (Math.abs(headingErrorDeg) <= headingLimit())
 			updateTrim(errorX / tagsSeen, errorY / tagsSeen);
 		updateTilt(audienceUp, scoringUp);
 	}
 
 	private void updateHeading(double believedDeg) {
 		int count = Math.min(tagsSeen, seen.length);
+		headingTags = count;
 		if (count < minHeadingTags) {
 			headingFrames = 0;
 			headingErrorDeg = 0.0;
@@ -195,6 +203,7 @@ public class Camera extends SubsystemBase {
 			meanX += seen[i][2] / count;
 			meanY += seen[i][3] / count;
 		}
+		headingRange = Math.hypot(meanForward, meanLeft);
 		double cross = 0, dot = 0;
 		for (int i = 0; i < count; i++) {
 			double forward = seen[i][0] - meanForward, left = seen[i][1] - meanLeft;
@@ -225,6 +234,8 @@ public class Camera extends SubsystemBase {
 			return;
 
 		if (Math.hypot(errorX, errorY) > maxTrimIn) {
+			if (headingFrames == 0)
+				return;
 			boolean agrees = Math.hypot(errorX - lastLargeX, errorY - lastLargeY) < acquireAgreementIn;
 			largeFrames = agrees ? largeFrames + 1 : 1;
 			lastLargeX = errorX;

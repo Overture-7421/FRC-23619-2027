@@ -10,7 +10,7 @@ import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
 @Configurable
 public class Arm extends SubsystemBase {
 	public static double closedPosition = 0.05;
-	public static double openPosition = 0.49;
+	public static double openPosition = 0.48;
 	public static boolean rightInverted = true;
 
 	private final ServoEx servoLeft;

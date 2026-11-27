@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import android.os.SystemClock;
+
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
@@ -11,6 +13,7 @@ import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 public class Chassis extends SubsystemBase {
 	private final Follower follower;
 	private Pose startPose;
+	private int startTries = 0;
 	private final TelemetryManager telemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
 	public Chassis(Follower follower) {
@@ -20,16 +23,11 @@ public class Chassis extends SubsystemBase {
 	@Override
 	public void periodic() {
 		follower.update();
-
-		Pose pose = follower.pose();
-		if (startPose != null) {
-			if (Math.hypot(pose.x() - startPose.x(), pose.y() - startPose.y()) > 0.5)
-				follower.setPose(startPose);
+		if (startPose != null && (startPoseHolds("run") || ++startTries > 25))
 			startPose = null;
-		}
-		// telemetry.addData("Robot X", pose.x());
-		// telemetry.addData("Robot Y", pose.y());
-		// telemetry.addData("Robot Heading deg", Math.toDegrees(pose.heading()));
+		// telemetry.addData("Robot X", follower.pose().x());
+		// telemetry.addData("Robot Y", follower.pose().y());
+		// telemetry.addData("Robot Heading deg", Math.toDegrees(follower.pose().heading()));
 	}
 
 	public Follower getFollower() {
@@ -39,6 +37,20 @@ public class Chassis extends SubsystemBase {
 	public void initPose(boolean isAuto, Pose starting) {
 		startPose = PoseStorage.currentPose != null && !isAuto ? PoseStorage.currentPose : starting;
 		follower.setPose(startPose);
+		for (int i = 0; i < 5; i++) {
+			SystemClock.sleep(20);
+			follower.localizer.update();
+			if (startPoseHolds("init"))
+				break;
+		}
+	}
+
+	private boolean startPoseHolds(String when) {
+		Pose pose = follower.pose();
+		boolean holds = Math.hypot(pose.x() - startPose.x(), pose.y() - startPose.y()) < 0.5;
+		if (!holds)
+			follower.setPose(startPose);
+		return holds;
 	}
 
 	public void setLastPose() {
