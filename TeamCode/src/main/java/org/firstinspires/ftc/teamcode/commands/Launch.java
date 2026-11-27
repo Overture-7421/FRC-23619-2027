@@ -121,6 +121,11 @@ public class Launch extends CommandBase {
 			turret.setAimRate((dy * vx - dx * vy) / Math.max(dx * dx + dy * dy, 1e-6) - velocity.omega);
 		}
 		wasSearching = searching && !holding;
+		com.qualcomm.robotcore.util.RobotLog.dd("TempAim",
+				"pose=%.2f,%.2f,%.2f vel=%.2f,%.2f,%.3f trim=%.2f,%.2f tags=%b dist=%.1f hold=%b lead=%.2f,%.2f",
+				robot.x(), robot.y(), Math.toDegrees(robot.heading()), velocity.vx, velocity.vy, velocity.omega,
+				camera.getTrimX(), camera.getTrimY(), camera.hasTags(), distance, holding, movingTarget.x() - target.x(),
+				movingTarget.y() - target.y()); // TEMP log
 		boolean shooting = shootRequested.getAsBoolean() && !searching && !holding;
 		double speed = useManual ? manualSpeed : LaunchConstants.DistanceToShooter.get(distance);
 		shooter.setSpeed(keepShooterOn || shooting ? speed : 0);

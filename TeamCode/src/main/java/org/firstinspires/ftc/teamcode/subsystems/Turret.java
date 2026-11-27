@@ -49,6 +49,11 @@ public class Turret extends SubsystemBase {
 	public static double feedforwardWindowDeg = 60.0;
 	public static double maxPower = 0.4;
 	public static double rangeOfErrorDeg = 2.0;
+	public static double holdErrorDeg = 3.0;
+	public static double nudgeWindowDeg = 8.0;
+	public static double nudgePower = 0.2;
+	public static double nudgeSec = 0.06;
+	public static double nudgeWaitSec = 0.2;
 	public static double stallPower = 0.25;
 	public static double stallMoveDeg = 2.0;
 	public static double stallSec = 1.0;
@@ -80,6 +85,11 @@ public class Turret extends SubsystemBase {
 	private double speedAngle = 0.0;
 	private long speedTime = 0;
 	private boolean active = false;
+	private boolean settled = false;
+	private boolean nudging = false;
+	private long nudgeEnd = 0;
+	private double nudgeFrom = 0.0;
+	private double nudgeExtraSec = 0.0;
 	private double turretAngle = 0.0;
 	private double targetAngle = 0.0;
 	private double encoder1Deg, encoder2Deg, encoder2Residual;
@@ -132,11 +142,28 @@ public class Turret extends SubsystemBase {
 			boolean tracking = Math.abs(aimRateDeg) > trackingRateDeg;
 			double setpoint = Range.clip(targetAngle + aimRateDeg * aimLeadSec, reverseLimitDeg, forwardLimitDeg);
 			controller.setOpenF(tracking ? 0.0 : kS);
-			controller.setTolerance(rangeOfErrorDeg);
+			if (Math.abs(error) < rangeOfErrorDeg)
+				settled = true;
+			else if (tracking || Math.abs(error) > holdErrorDeg)
+				settled = false;
+			controller.setTolerance(settled ? holdErrorDeg : rangeOfErrorDeg);
 
 			power = controller.calculate(turretAngle, setpoint);
 			if (controller.atSetPoint()) {
 				power = 0.0;
+			}
+			boolean stopped = Math.abs(speed) < movingSpeedDeg;
+			if (tracking || settled || Math.abs(error) > nudgeWindowDeg)
+				nudging = false;
+			else if (stopped)
+				nudging = true;
+			if (nudging) {
+				if (stopped && now > nudgeEnd + (long) (nudgeWaitSec * 1e9)) {
+					nudgeExtraSec = Math.abs(turretAngle - nudgeFrom) < 0.3 ? Math.min(nudgeExtraSec + 0.02, 0.2) : 0.0;
+					nudgeFrom = turretAngle;
+					nudgeEnd = now + (long) ((nudgeSec + nudgeExtraSec) * 1e9);
+				}
+				power = now < nudgeEnd ? Math.signum(error) * nudgePower : 0.0;
 			}
 			if (tracking && Math.abs(error) < feedforwardWindowDeg) {
 				boolean moving = speed * Math.signum(aimRate) > movingSpeedDeg;
@@ -163,6 +190,8 @@ public class Turret extends SubsystemBase {
 			restUntil = now + (long) (stallRestSec * 1e9);
 		}
 		torreta.set(servoInverted ? -power : power);
+		com.qualcomm.robotcore.util.RobotLog.dd("TempTurret", "t=%.1f a=%.2f p=%.3f v=%.0f ok=%b rate=%.1f set=%b",
+				targetAngle, turretAngle, power, speed, goodRead, Math.toDegrees(aimRate), settled + " nudge=" + nudging); // TEMP log
 		// telemetry.addData("Turret Angle", turretAngle);
 		// telemetry.addData("Turret Target", targetAngle);
 		// telemetry.addData("Turret Error", error);
@@ -225,7 +254,7 @@ public class Turret extends SubsystemBase {
 	}
 
 	public boolean isAtPosition() {
-		return isHealthy() && Math.abs(targetAngle - turretAngle) < rangeOfErrorDeg;
+		return isHealthy() && Math.abs(targetAngle - turretAngle) < (settled ? holdErrorDeg : rangeOfErrorDeg);
 	}
 
 	public boolean isHealthy() {

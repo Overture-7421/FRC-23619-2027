@@ -18,7 +18,7 @@ import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
 public class Intakedexer extends SubsystemBase {
 	public static double intakePower = 0.7;
 	public static double indexerPower = 0.4;
-	public static double feedPower = 0.8;
+	public static double feedPower = 0.7;
 	public static double brakeClosed = 0.5;
 	public static double brakeOpen = 1.0;
 	public static double lowerSensorCm = 5.5;
@@ -35,7 +35,6 @@ public class Intakedexer extends SubsystemBase {
 	private boolean intaking = false;
 	private boolean shooting = false;
 	private boolean outtaking = false;
-	private long lowerSince = 0;
 	private long upperSince = 0;
 
 	public Intakedexer(HardwareMap hardwareMap) {
@@ -58,11 +57,10 @@ public class Intakedexer extends SubsystemBase {
 			intake.set(intakePower);
 			indexer.set(feedPower);
 		} else if (intaking) {
-			lowerSince = getLowerSensor() ? (lowerSince == 0 ? System.nanoTime() : lowerSince) : 0;
 			upperSince = getUpperSensor() ? (upperSince == 0 ? System.nanoTime() : upperSince) : 0;
 			brake.set(brakeClosed);
 			indexer.set(isUpperFull() ? 0 : indexerPower);
-			intake.set(isFull() ? 0 : intakePower);
+			intake.set(intakePower);
 		} else if (outtaking) {
 			brake.set(brakeClosed);
 			indexer.set(-1);
@@ -74,7 +72,6 @@ public class Intakedexer extends SubsystemBase {
 		}
 
 		// telemetry.addData("Intake UpperFull", isUpperFull());
-		// telemetry.addData("Intake Full", isFull());
 	}
 
 	public Command intake() {
@@ -99,9 +96,5 @@ public class Intakedexer extends SubsystemBase {
 
 	public boolean isUpperFull() {
 		return upperSince != 0 && System.nanoTime() - upperSince > sensorTimeMs * 1e6;
-	}
-
-	public boolean isFull() {
-		return isUpperFull() && lowerSince != 0 && System.nanoTime() - lowerSince > sensorTimeMs * 1e6;
 	}
 }
