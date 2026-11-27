@@ -8,6 +8,7 @@ import com.bylazar.telemetry.TelemetryManager;
 import com.qualcomm.robotcore.hardware.ColorRangeSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.seattlesolvers.solverslib.command.Command;
+import com.seattlesolvers.solverslib.command.InstantCommand;
 import com.seattlesolvers.solverslib.command.StartEndCommand;
 import com.seattlesolvers.solverslib.command.SubsystemBase;
 import com.seattlesolvers.solverslib.hardware.motors.Motor;
@@ -35,6 +36,8 @@ public class Intakedexer extends SubsystemBase {
 	private boolean intaking = false;
 	private boolean shooting = false;
 	private boolean outtaking = false;
+	private boolean stoppingIntake = false;
+	private boolean intakingAuto = false;
 	private long upperSince = 0;
 
 	public Intakedexer(HardwareMap hardwareMap) {
@@ -65,6 +68,14 @@ public class Intakedexer extends SubsystemBase {
 			brake.set(brakeClosed);
 			indexer.set(-1);
 			intake.set(-1);
+		} else if(intakingAuto){
+		    brake.set(brakeOpen);
+			indexer.set(1);
+			intake.set(1);
+		} else if(stoppingIntake){
+			brake.set(brakeClosed);
+			indexer.set(0);
+			intake.set(0);
 		} else {
 			brake.set(brakeClosed);
 			intake.set(0);
@@ -81,7 +92,12 @@ public class Intakedexer extends SubsystemBase {
 	public Command outtake() {
 		return new StartEndCommand(() -> outtaking = true, () -> outtaking = false, this);
 	}
-
+	public Command intakeAutoShoot() {
+		return new StartEndCommand(() -> intakingAuto = true, () -> intakingAuto = false, this);
+	}
+    public Command stopIntake(){
+		return new InstantCommand(() -> stoppingIntake = true);
+	}
 	public Command shoot() {
 		return new StartEndCommand(() -> shooting = true, () -> shooting = false, this);
 	}
