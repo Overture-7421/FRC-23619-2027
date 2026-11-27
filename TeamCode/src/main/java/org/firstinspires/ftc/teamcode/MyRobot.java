@@ -62,6 +62,32 @@ public class MyRobot extends Robot {
 	public Intakedexer getIntake() {
 		return this.intake;
 	}
+	public Shooter getShooter(){
+		return this.shooter;
+	}
+
+	public Chassis getChassis(){
+		return this.chassis;
+	}
+
+	public Arm getArm(){
+		return this.arm;
+	}
+
+	public Hood getHood(){
+		return this.getHood();
+	}
+
+	public Turret getTurret(){
+		return this.turret;
+	}
+	public Camera getCamera(){
+		return this.camera;
+	}
+
+	public Follower getFollower() {
+		return follower;
+	}
 
 	public void initTeleop() {
 		Pose start = alliance == Alliance.Red ? new Pose(9.2, 72, 0) : new Pose(134.8, 72, Math.PI);
@@ -77,7 +103,7 @@ public class MyRobot extends Robot {
 
 		new Trigger(launch::canFeed).whileActiveContinuous(intake.shoot());
 
-		driver.getGamepadButton(GamepadKeys.Button.LEFT_BUMPER)
+		driver.getGamepadButton(GamepadKeys.Button.A)
 				.whenPressed(arm.open())
 				.whenReleased(arm.close());
 
